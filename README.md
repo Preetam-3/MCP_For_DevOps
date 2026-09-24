@@ -9,22 +9,9 @@ It can look at everything. It can change nothing. And this repo proves it.
 
 https://github.com/user-attachments/assets/b26b4811-03ad-46ad-9b9f-2337cc5878d6
 
-<<<<<<< HEAD
-This demo shows the AI agent investigating a Kubernetes incident through the read-only MCP server while Kubernetes RBAC prevents mutation.
-
-> **📌 GitHub video:** Upload `Agentic Cluster.mp4` to a GitHub Issue, copy the generated `github.com/user-attachments/assets/...` URL, and replace the placeholder below with that URL. GitHub will render the uploaded video directly in the README.
-
-
-```text
-https://github.com/user-attachments/assets/b26b4811-03ad-46ad-9b9f-2337cc5878d6"./Agentic%20Cluster.mp4" controls width="100%"></video>
-```
-=======
-*A 90-second walkthrough: a pod is crashing → I ask Claude Code to investigate through Kubernetes → it diagnoses the exact root cause → I ask it to fix it → it can't, because it was never given the ability to.*
->>>>>>> c64cd24 (Add Readme.md)
-
 ---
 
-## 🧠 What This Project Actually Is (in plain words)
+## 🧠 What This Project Actually Is
 
 Normally, if you want an AI agent to help you debug your Kubernetes cluster, you'd have to give it your `kubectl` access — which means giving it the power to delete, restart, or break things too.
 
