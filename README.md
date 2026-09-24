@@ -1,903 +1,157 @@
-# 🔐 Agentic DevOps — Governed Kubernetes Access with MCP + RBAC
+# 🤖 Agentic DevOps — Governed AI Access to Kubernetes
 
-> **Connect an AI agent to a real Kubernetes cluster — while proving it can investigate incidents without being able to modify infrastructure.**
-
-This project demonstrates a practical **Agentic DevOps** pattern using **Claude Code, Model Context Protocol (MCP), Kubernetes RBAC, ServiceAccounts, and a local Kubernetes cluster**.
-
-The agent gets live visibility into Kubernetes through a small, purpose-built **read-only MCP server**. The security model is enforced twice:
-
-- **MCP tool boundary:** only read operations are exposed.
-- **Kubernetes RBAC boundary:** the ServiceAccount can only `get`/`list` specific resources inside the `demo` namespace.
-
-The result is an agent that can **observe → investigate → diagnose → verify**, but cannot **delete, patch, create, exec, attach, or port-forward**.
+**Connect an AI agent (Claude Code) to a real Kubernetes cluster — safely.**
+It can look at everything. It can change nothing. And this repo proves it.
 
 ---
 
-## 🎥 Project Demo
+## 🎥 Demo
 
-### Agentic Kubernetes Troubleshooting Demo
+https://github.com/user-attachments/assets/b26b4811-03ad-46ad-9b9f-2337cc5878d6
 
+<<<<<<< HEAD
 This demo shows the AI agent investigating a Kubernetes incident through the read-only MCP server while Kubernetes RBAC prevents mutation.
 
 > **📌 GitHub video:** Upload `Agentic Cluster.mp4` to a GitHub Issue, copy the generated `github.com/user-attachments/assets/...` URL, and replace the placeholder below with that URL. GitHub will render the uploaded video directly in the README.
 
-**Video attachment:**
 
 ```text
-PASTE-YOUR-GITHUB-VIDEO-ATTACHMENT-URL-HERE
+https://github.com/user-attachments/assets/b26b4811-03ad-46ad-9b9f-2337cc5878d6"./Agentic%20Cluster.mp4" controls width="100%"></video>
 ```
-
-**Local demo file:** `Agentic Cluster.mp4` (kept locally; it does not need to be committed to the repository).
+=======
+*A 90-second walkthrough: a pod is crashing → I ask Claude Code to investigate through Kubernetes → it diagnoses the exact root cause → I ask it to fix it → it can't, because it was never given the ability to.*
+>>>>>>> c64cd24 (Add Readme.md)
 
 ---
 
-## 🧠 What This Project Demonstrates
+## 🧠 What This Project Actually Is (in plain words)
 
-The project answers a practical question:
+Normally, if you want an AI agent to help you debug your Kubernetes cluster, you'd have to give it your `kubectl` access — which means giving it the power to delete, restart, or break things too.
 
-> **How can an AI agent access real infrastructure without giving the agent unrestricted infrastructure privileges?**
+This project answers one question: **can an AI agent be genuinely useful for troubleshooting a cluster without ever being able to change it?**
 
-Instead of trusting the model to "behave," the architecture constrains the agent at two independent layers.
+Here's the trick, in three ideas:
 
-```text
-                         ┌──────────────────────────┐
-                         │       Claude Code        │
-                         │        AI Agent          │
-                         └────────────┬─────────────┘
-                                      │
-                              MCP client / stdio
-                                      │
-                                      ▼
-                    ┌───────────────────────────────┐
-                    │     Read-Only MCP Server      │
-                    │                               │
-                    │  list_pods                    │
-                    │  get_pod                      │
-                    │  pod_logs                      │
-                    │  list_events                   │
-                    └──────────────┬────────────────┘
-                                   │
-                           KUBECONFIG
-                                   │
-                                   ▼
-                    ┌───────────────────────────────┐
-                    │ Kubernetes ServiceAccount     │
-                    │       mcp-readonly            │
-                    └──────────────┬────────────────┘
-                                   │
-                              RBAC / Role
-                                   │
-                    ┌──────────────▼────────────────┐
-                    │        demo namespace         │
-                    │                               │
-                    │  web Deployment               │
-                    │  crasher Pod                  │
-                    │  Events                       │
-                    │  Pod Logs                     │
-                    └───────────────────────────────┘
+1. **Give the agent its own ID card, not yours.**
+   I created a dedicated Kubernetes identity (a `ServiceAccount`) just for the AI agent. It is *not* my personal `kubectl` login — it's a separate, disposable identity.
+
+2. **Make that ID card physically unable to do damage.**
+   Using Kubernetes RBAC (Role-Based Access Control), I gave that identity permission to only `get` and `list` — never `create`, `delete`, `patch`, or even run a command inside a pod. If it tries anything else, Kubernetes itself rejects it with a `403 Forbidden` — the same way a locked door doesn't care how nicely you ask.
+
+3. **Build the agent's toolbox with no "dangerous" tools in it at all.**
+   The AI doesn't talk to Kubernetes directly. It talks through a small bridge program I wrote (an **MCP server**) that only exposes four abilities: *list pods, read a pod, read logs, read events.* There is no `delete_pod` function anywhere in the code — so even if the AI "wanted" to delete something, there's no button for it to press.
+
+The result: two independent walls between the AI and my cluster — one in the code (no delete tool exists), one in Kubernetes itself (the credential is denied). Both have to fail for anything bad to happen, and the demo video proves both hold.
+
+---
+
+## 🏗️ How It Works
+
+```mermaid
+flowchart LR
+    A["👤 You, in a terminal"] -->|"ask a question"| B["Claude Code"]
+    B -->|"MCP protocol (stdio)"| C["k8s-mcp server<br/>(Node.js)"]
+    C -->|"uses a scoped kubeconfig"| D["ServiceAccount: mcp-readonly"]
+    D -->|"RBAC checked here"| E["Kubernetes API Server"]
+    E -->|"✅ get / list pods, logs, events"| C
+    E -.->|"❌ 403 Forbidden on any write"| C
+    C --> B
+    B -->|"plain-English answer"| A
 ```
 
-### The two security boundaries
-
-| Layer | Control | Purpose |
+| Layer | What it is | What it enforces |
 |---|---|---|
-| **MCP** | Tool surface | The agent can only invoke tools that exist |
-| **Kubernetes RBAC** | ServiceAccount permissions | The Kubernetes API decides what the credential can actually do |
-
-This is **defense in depth**.
-
-Even if a future MCP implementation accidentally exposed a mutating operation, the Kubernetes API should still reject it with `403 Forbidden`.
+| **MCP Server** (`k8s-mcp/server.js`) | A Node.js program exposing 4 read-only tools to Claude Code | The agent can only *call* things that exist — and nothing mutating exists |
+| **ServiceAccount** (`mcp-readonly`) | A dedicated Kubernetes identity for the agent | Not your admin login — a separate, disposable identity |
+| **RBAC Role + RoleBinding** (`rbac.yaml`) | Grants `get`/`list` on pods, events, and pod logs — nothing else, in one namespace only | Enforced by the Kubernetes API server itself, not by the AI "choosing" to behave |
+| **Scoped kubeconfig** (`mcp.kubeconfig`) | A short-lived token bound to `mcp-readonly` | Even a direct write attempt with this exact credential gets rejected |
 
 ---
 
-## 🛠️ Tech Stack
+## 📂 Project Structure
 
-| Technology | Role |
-|---|---|
-| **Claude Code** | AI agent / MCP host |
-| **Model Context Protocol (MCP)** | Standard interface between the agent and infrastructure |
-| **Node.js** | MCP server runtime |
-| **@modelcontextprotocol/sdk** | MCP server implementation |
-| **@kubernetes/client-node** | Kubernetes API client |
-| **Zod** | MCP tool input validation |
-| **Kubernetes** | Infrastructure platform |
-| **RBAC** | Least-privilege authorization |
-| **ServiceAccount** | Dedicated agent identity |
-| **stdio** | Local MCP transport |
-| **kind / minikube** | Local Kubernetes sandbox |
-
----
-
-## ✨ Key Features
-
-### 🔎 Read-only Kubernetes investigation
-
-The MCP server exposes exactly four tools:
-
-```text
-list_pods
-get_pod
-pod_logs
-list_events
 ```
-
-There is intentionally **no**:
-
-```text
-delete_pod
-patch_deployment
-create_deployment
-exec
-attach
-port_forward
-```
-
-The agent therefore has no MCP tool through which it can directly perform those operations.
-
-### 🔐 Namespace-scoped RBAC
-
-The agent identity is restricted to:
-
-```text
-Namespace: demo
-ServiceAccount: mcp-readonly
-```
-
-Allowed permissions:
-
-```text
-pods       → get, list
-events     → get, list
-pods/log   → get
-```
-
-Not allowed:
-
-```text
-create
-update
-patch
-delete
-watch
-exec
-attach
-port-forward
-```
-
-### 🎯 Short-lived credentials
-
-The lab uses:
-
-```bash
-kubectl create token mcp-readonly -n demo --duration=1h
-```
-
-Instead of relying on a long-lived ServiceAccount Secret token.
-
-### 🧪 Real enforcement test
-
-The project doesn't stop at checking the RBAC YAML.
-
-The **actual credential used by the MCP server** is tested:
-
-```bash
-kubectl --kubeconfig=mcp.kubeconfig delete pod crasher -n demo
-```
-
-Expected result:
-
-```text
-Error from server (Forbidden)
-```
-
-While read access continues to work:
-
-```bash
-kubectl --kubeconfig=mcp.kubeconfig get pods -n demo
-```
-
-This demonstrates that the credential is genuinely read-only.
-
----
-
-# 🚨 Incident Demonstration
-
-The project creates an intentionally broken pod:
-
-```bash
-kubectl run crasher \
-  --image=busybox:1.36 \
-  --restart=Always \
-  -n demo \
-  -- /bin/sh -c 'echo starting; sleep 2; exit 1'
-```
-
-The pod repeatedly exits with code `1`, causing Kubernetes to report:
-
-```text
-CrashLoopBackOff
-```
-
-The AI agent investigates the incident using only its read-only MCP tools.
-
-### Investigation flow
-
-```text
-                    Incident
-                       │
-                       ▼
-              ┌────────────────┐
-              │ list_pods       │
-              │ Find unhealthy  │
-              │ workload        │
-              └───────┬────────┘
-                      │
-                      ▼
-              ┌────────────────┐
-              │ list_events     │
-              │ Observe BackOff │
-              └───────┬────────┘
-                      │
-                      ▼
-              ┌────────────────┐
-              │ get_pod         │
-              │ exitCode = 1    │
-              │ reason = Error  │
-              └───────┬────────┘
-                      │
-                      ▼
-              ┌────────────────┐
-              │ pod_logs        │
-              │ "starting"      │
-              └───────┬────────┘
-                      │
-                      ▼
-              ┌────────────────────────┐
-              │ Root Cause             │
-              │ Container exits non-   │
-              │ zero on every start    │
-              └────────────────────────┘
-```
-
-### Important distinction
-
-`CrashLoopBackOff` is **the symptom**, not necessarily the root cause.
-
-In this lab:
-
-```text
-Container exits → exitCode 1
-        ↓
-Kubernetes restarts container
-        ↓
-Repeated failures
-        ↓
-Kubernetes applies back-off
-        ↓
-CrashLoopBackOff
-```
-
-The agent can diagnose this completely without write access.
-
----
-
-# 🏗️ Project Structure
-
-```text
-.
-├── Agentic Cluster.mp4
+MCP_For_DevOps/
+├── README.md              # you are here
+├── rbac.yaml               # ServiceAccount + Role + RoleBinding (the permission wall)
 ├── k8s-mcp/
-│   ├── node_modules/
 │   ├── package.json
-│   ├── package-lock.json
-│   └── server.js
-├── mcp.kubeconfig
-└── rbac.yaml
-```
-
-### File responsibilities
-
-| File / Directory | Purpose |
-|---|---|
-| `k8s-mcp/server.js` | Read-only MCP server |
-| `k8s-mcp/package.json` | Node.js project configuration |
-| `k8s-mcp/package-lock.json` | Locked dependency tree |
-| `rbac.yaml` | ServiceAccount, Role and RoleBinding |
-| `mcp.kubeconfig` | Scoped credential used by the MCP server |
-| `Agentic Cluster.mp4` | Project demonstration |
-
-> ⚠️ **Important:** `mcp.kubeconfig` contains credentials. **Do not commit it to a public GitHub repository.** Generate it locally and add it to `.gitignore`.
-
-Also do **not** commit `node_modules/`.
-
-Recommended `.gitignore`:
-
-```gitignore
-node_modules/
-mcp.kubeconfig
-ca.crt
-.env
+│   └── server.js           # the read-only MCP server (the tool wall)
+├── mcp.kubeconfig           # scoped credential (git-ignored — never commit this)
+└── .gitignore
 ```
 
 ---
 
-# 🚀 Getting Started
+## 🚀 Try It Yourself
 
-## 1. Prerequisites
+### 1. Prerequisites
+- A local Kubernetes cluster (`kind` or `minikube`)
+- `kubectl`, `node` (18+), and the [Claude Code](https://claude.com/product/claude-code) CLI installed
 
-You need:
-
-- Kubernetes local cluster: **kind** or **minikube**
-- `kubectl`
-- Node.js 18+
-- npm
-- Claude Code
-- A Linux/macOS shell environment
-
-Check:
-
-```bash
-kubectl version --client
-kubectl get nodes
-node --version
-npm --version
-claude --version
-```
-
----
-
-## 2. Create the Demo Namespace
-
+### 2. Spin up the lab
 ```bash
 kubectl create namespace demo
+kubectl create deployment web --image=nginx:1.27 --replicas=2 -n demo
+kubectl run crasher --image=busybox:1.36 --restart=Always -n demo -- /bin/sh -c 'echo starting; sleep 2; exit 1'
 ```
 
-Create a healthy workload:
-
-```bash
-kubectl create deployment web \
-  --image=nginx:1.27 \
-  --replicas=2 \
-  -n demo
-
-kubectl rollout status deployment/web -n demo
-```
-
-Create the intentionally failing workload:
-
-```bash
-kubectl run crasher \
-  --image=busybox:1.36 \
-  --restart=Always \
-  -n demo \
-  -- /bin/sh -c 'echo starting; sleep 2; exit 1'
-```
-
-Check:
-
-```bash
-kubectl get pods -n demo
-```
-
-You should see the `web` pods running and `crasher` repeatedly restarting.
-
----
-
-# 🔐 3. Apply Least-Privilege RBAC
-
-Apply:
-
+### 3. Apply the read-only permissions
 ```bash
 kubectl apply -f rbac.yaml
 ```
 
-The RBAC configuration creates:
-
-```text
-ServiceAccount
-    mcp-readonly
-        │
-        ▼
-Role
-    mcp-readonly
-        │
-        ▼
-RoleBinding
-    mcp-readonly
-```
-
-Verify:
-
+### 4. Build the scoped credential
 ```bash
-kubectl get serviceaccount mcp-readonly -n demo
-kubectl get role,rolebinding mcp-readonly -n demo
+TOKEN=$(kubectl create token mcp-readonly -n demo --duration=1h)
+SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+kubectl config set-cluster lab --server="$SERVER" --insecure-skip-tls-verify=true --kubeconfig=mcp.kubeconfig
+kubectl config set-credentials mcp-readonly --token="$TOKEN" --kubeconfig=mcp.kubeconfig
+kubectl config set-context mcp --cluster=lab --user=mcp-readonly --namespace=demo --kubeconfig=mcp.kubeconfig
+kubectl config use-context mcp --kubeconfig=mcp.kubeconfig
 ```
 
----
-
-# 🔑 4. Create a Short-Lived Agent Credential
-
+### 5. Install and register the MCP server
 ```bash
-TOKEN=$(kubectl create token mcp-readonly \
-  -n demo \
-  --duration=1h)
-
-SERVER=$(kubectl config view \
-  --minify \
-  -o jsonpath='{.clusters[0].cluster.server}')
+cd k8s-mcp && npm install
+claude mcp add k8s-readonly -e KUBECONFIG="$PWD/../mcp.kubeconfig" -- node "$PWD/server.js"
 ```
 
-Create the scoped kubeconfig:
-
-```bash
-kubectl config set-cluster lab \
-  --server="$SERVER" \
-  --insecure-skip-tls-verify=true \
-  --kubeconfig=mcp.kubeconfig
-
-kubectl config set-credentials mcp-readonly \
-  --token="$TOKEN" \
-  --kubeconfig=mcp.kubeconfig
-
-kubectl config set-context mcp \
-  --cluster=lab \
-  --user=mcp-readonly \
-  --namespace=demo \
-  --kubeconfig=mcp.kubeconfig
-
-kubectl config use-context mcp \
-  --kubeconfig=mcp.kubeconfig
-```
-
-> For a real environment, replace `--insecure-skip-tls-verify=true` with a verified cluster CA. This project demonstrates that hardening step as well.
-
----
-
-# 🧪 5. Verify the Permission Boundary
-
-Allowed:
-
-```bash
-kubectl auth can-i \
-  get pods \
-  --as=system:serviceaccount:demo:mcp-readonly \
-  -n demo
-```
-
-Expected:
-
-```text
-yes
-```
-
-Denied:
-
-```bash
-kubectl auth can-i \
-  delete pods \
-  --as=system:serviceaccount:demo:mcp-readonly \
-  -n demo
-```
-
-Expected:
-
-```text
-no
-```
-
-Cross-namespace access:
-
-```bash
-kubectl auth can-i \
-  get pods \
-  --as=system:serviceaccount:demo:mcp-readonly \
-  -n kube-system
-```
-
-Expected:
-
-```text
-no
-```
-
-Check the complete effective permission set:
-
-```bash
-kubectl auth can-i \
-  --list \
-  --as=system:serviceaccount:demo:mcp-readonly \
-  -n demo
-```
-
----
-
-# 🧩 6. Run the MCP Server
-
-Install dependencies:
-
-```bash
-cd k8s-mcp
-
-npm install \
-  @modelcontextprotocol/sdk \
-  @kubernetes/client-node \
-  zod
-```
-
-Validate the JavaScript:
-
-```bash
-node --check server.js
-```
-
-Expected:
-
-```text
-server.js parses OK
-```
-
----
-
-# 🔌 7. Connect MCP to Claude Code
-
-From the `k8s-mcp` directory:
-
-```bash
-claude mcp add k8s-readonly \
-  -e KUBECONFIG="$PWD/../mcp.kubeconfig" \
-  -- node "$PWD/server.js"
-```
-
-Verify:
-
-```bash
-claude mcp list
-```
-
-You should see:
-
-```text
-k8s-readonly
-```
-
----
-
-# 🤖 8. Investigate Kubernetes Through the Agent
-
-Start Claude Code:
-
+### 6. Ask Claude Code to investigate
 ```bash
 claude
 ```
-
-Try prompts such as:
-
-```text
-List the pods in the demo namespace and their restart counts.
 ```
-
-```text
-Show me the recent events in the demo namespace for the crasher pod. What is Kubernetes reporting?
+Which pods in the demo namespace are unhealthy, and how many times has each restarted?
+Show me the logs from the crasher pod.
+Please delete or restart the crasher pod so it recovers.
 ```
+👆 Watch it explain the failure in detail — and then tell you it has no way to fix it.
 
-```text
-Read the crasher pod status and identify its last terminated exit code and reason.
-```
-
-```text
-Show me the logs from the crasher pod and explain the failure.
-```
-
-The agent should be able to diagnose the incident using:
-
-```text
-list_pods
-get_pod
-pod_logs
-list_events
-```
-
----
-
-# 🛑 9. Prove the Agent Cannot Mutate
-
-Try the real credential:
-
+### 7. Prove the wall is real, not just polite
 ```bash
-kubectl \
-  --kubeconfig=mcp.kubeconfig \
-  delete pod crasher \
-  -n demo
+kubectl --kubeconfig=mcp.kubeconfig delete pod crasher -n demo
 ```
-
-Expected:
-
-```text
-Error from server (Forbidden)
 ```
-
-But reads still work:
-
-```bash
-kubectl \
-  --kubeconfig=mcp.kubeconfig \
-  get pods \
-  -n demo
-```
-
-This is the key security demonstration:
-
-```text
-READ  → ✅ allowed
-WRITE → ❌ Forbidden
-EXEC  → ❌ Forbidden
-OTHER NAMESPACE → ❌ Forbidden
+Error from server (Forbidden): ...
 ```
 
 ---
 
-# 🧑‍💻 10. Remediate as the Operator
+## 🔐 Why This Matters
 
-The agent is intentionally **not** responsible for the write operation.
-
-Use your normal operator credentials:
-
-```bash
-kubectl delete pod crasher -n demo
-```
-
-Then recreate a healthy version:
-
-```bash
-kubectl run crasher \
-  --image=busybox:1.36 \
-  --restart=Always \
-  -n demo \
-  -- /bin/sh -c 'echo starting; sleep 3600'
-```
-
-Wait for it:
-
-```bash
-kubectl wait \
-  --for=condition=Ready \
-  pod/crasher \
-  -n demo \
-  --timeout=60s
-```
-
-Finally, ask Claude Code to verify:
-
-```text
-Re-check the demo namespace. Is the crasher pod healthy now, and has it stopped restarting?
-```
-
-The same read-only agent can verify the fix without gaining write access.
+Most "AI + infrastructure" demos either give the agent too much power (dangerous) or make it purely read-only in a way that's not actually useful (boring). This project shows a middle path: **full visibility, zero mutation, enforced twice** — once in the code, once by Kubernetes itself. That's the pattern you'd actually want before letting an AI agent near a production cluster.
 
 ---
 
-# 🔒 Security Model
-
-This project intentionally separates **observation** from **remediation**.
-
-```text
-             AI AGENT
-                 │
-                 │ read-only MCP
-                 ▼
-        ┌──────────────────┐
-        │   MCP Server     │
-        │                  │
-        │  GET / LIST      │
-        └────────┬─────────┘
-                 │
-                 │ scoped credential
-                 ▼
-        ┌──────────────────┐
-        │ Kubernetes RBAC  │
-        │                  │
-        │ namespace: demo  │
-        │ read only        │
-        └────────┬─────────┘
-                 │
-          ┌──────┴──────┐
-          │             │
-        READ           WRITE
-          │             │
-          ▼             ▼
-        ALLOW         DENY
-                       403
-```
-
-The important principle is:
-
-> **Don't rely on the model to be safe. Remove dangerous capabilities and enforce the remaining boundary at the infrastructure layer.**
+## 🛠️ Tech Stack
+- **Claude Code** — the AI agent / MCP host
+- **Model Context Protocol (MCP)** — the standard connecting the agent to tools
+- **Node.js** + `@modelcontextprotocol/sdk` + `@kubernetes/client-node` — the MCP server
+- **Kubernetes RBAC** — ServiceAccounts, Roles, RoleBindings
+- **kind / minikube** — local sandbox cluster
 
 ---
 
-# 🧩 MCP Architecture
-
-MCP uses three main participants:
-
-```text
-Host
-└── Claude Code
-
-Client
-└── Connection created by Claude Code for this MCP server
-
-Server
-└── k8s-readonly
-    ├── list_pods
-    ├── get_pod
-    ├── pod_logs
-    └── list_events
-```
-
-This project uses **stdio transport**:
-
-```text
-Claude Code
-     │
-     │ stdin/stdout
-     ▼
-k8s-readonly MCP Server
-     │
-     │ Kubernetes API
-     ▼
-Kubernetes API Server
-```
-
-The MCP server must therefore keep diagnostics on `stderr` rather than `stdout`, because stdout carries the JSON-RPC protocol stream.
-
----
-
-# 🧠 What I Learned
-
-This project focuses on several practical DevOps concepts:
-
-- How MCP connects AI agents to external infrastructure
-- MCP host / client / server architecture
-- JSON-RPC and stdio transport
-- Designing an MCP server with a deliberately constrained tool surface
-- Kubernetes ServiceAccounts
-- Namespace-scoped RBAC
-- Least privilege across **WHAT** and **WHERE**
-- Kubernetes subresources such as `pods/log`, `pods/exec`, `pods/attach`, and `pods/portforward`
-- Short-lived ServiceAccount tokens
-- Kubernetes API authorization with `kubectl auth can-i`
-- Using a dedicated kubeconfig for an agent
-- Diagnosing `CrashLoopBackOff`
-- Distinguishing symptoms from root causes
-- Separating AI-driven diagnosis from privileged remediation
-- Defense-in-depth for agentic infrastructure access
-
----
-
-# 📋 Incident Triage Cheat Sheet
-
-| Signal | Meaning |
-|---|---|
-| `CrashLoopBackOff` | Kubernetes is repeatedly restarting a failed container |
-| `exitCode: 1` + `Error` | Container exited with a non-zero status |
-| `exitCode: 137` + `OOMKilled` | Container was killed because of memory pressure |
-| `ImagePullBackOff` | Kubernetes cannot successfully pull the image |
-| `BackOff` event | Kubernetes is backing off between restart attempts |
-
-The critical lesson:
-
-> **`CrashLoopBackOff` describes Kubernetes' response to repeated failures. It does not, by itself, identify the application's root cause.**
-
----
-
-# 🧹 Cleanup
-
-When finished:
-
-```bash
-kubectl delete namespace demo
-```
-
-Remove the MCP server from Claude Code:
-
-```bash
-claude mcp remove k8s-readonly
-```
-
-Delete the local credential:
-
-```bash
-rm -f mcp.kubeconfig
-```
-
----
-
-# ⚠️ Security Notes
-
-This project is designed for a **local sandbox cluster**.
-
-Do not blindly copy the lab configuration into production.
-
-In particular:
-
-- Never commit `mcp.kubeconfig`.
-- Never expose an MCP server with cluster-admin credentials.
-- Prefer namespace-scoped `Role` + `RoleBinding` where possible.
-- Do not grant `pods/exec`, `pods/attach`, or `pods/portforward` unless explicitly required.
-- Use short-lived credentials for agent workloads.
-- Verify TLS instead of using `insecure-skip-tls-verify` outside a throwaway lab.
-- Treat MCP tool definitions as part of your security boundary.
-- Treat Kubernetes RBAC as the authoritative enforcement layer.
-
----
-
-# 📚 Learning Path
-
-This implementation follows a three-part hands-on progression:
-
-```text
-MCP Fundamentals
-       │
-       ▼
-Kubernetes + MCP + RBAC
-       │
-       ▼
-Incident Troubleshooting
-```
-
-### Module 0 — MCP for DevOps
-
-Understand:
-
-- What MCP solves
-- Host / client / server
-- JSON-RPC
-- stdio vs HTTP transport
-- Tools, resources, prompts
-- Tool surface as a security boundary
-
-### Module 1 — Kubernetes + MCP + RBAC
-
-Build and secure the integration:
-
-- Kubernetes ServiceAccount
-- Least-privilege RBAC
-- Scoped kubeconfig
-- Read-only MCP server
-- Claude Code integration
-- Permission auditing
-- CrashLoopBackOff troubleshooting
-
----
-
-## ⭐ Core Takeaway
-
-The interesting part of this project isn't simply **"AI can talk to Kubernetes."**
-
-The important engineering pattern is:
-
-```text
-AI Agent
-   ↓
-Constrained Interface
-   ↓
-Least-Privilege Identity
-   ↓
-Infrastructure Enforcement
-```
-
-The agent can have enough access to **understand and diagnose a real incident** without having enough access to **change the infrastructure it is observing**.
-
-That separation is the foundation for building safer agentic workflows in DevOps and SRE.
-
----
-
-## 👤 Author
-
-**Preetam Kumar Badatya**
-
-B.Tech CSE · DevOps / Cloud / SRE
-
-- GitHub: [@Preetam-3](https://github.com/Preetam-3)
-- LinkedIn: [preetam03](https://linkedin.com/in/preetam03)
-- Portfolio: [preetam.framer.ai](https://preetam.framer.ai)
+## 📄 License
+MIT — use this pattern freely in your own projects.
