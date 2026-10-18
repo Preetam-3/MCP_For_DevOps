@@ -7,7 +7,7 @@ rules:
     resources: ["nodes", "namespaces", "persistentvolumes", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["pods", "pods/log", "events", "services", "endpoints", "replicationcontrollers", "replicasets", "deployments"]
+    resources: ["pods", "pods/log", "events", "services", "endpoints", "replicationcontrollers"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets"]
