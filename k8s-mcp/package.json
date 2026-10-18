@@ -1,6 +1,16 @@
 {
   "name": "k8s-readonly-mcp",
   "version": "1.0.0",
+  "bin": {
+    "k8s-readonly": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/safety.js",
+    "verify-readonly": "node ../scripts/verify-readonly.js",
+    "doctor": "node ../scripts/doctor.js"
+  },
+  "engines": { "node": ">=18" },
   "private": true,
   "type": "module",
   "description": "Read-only Kubernetes MCP server for Claude Code",
