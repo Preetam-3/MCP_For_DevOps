@@ -7,3 +7,4 @@ mcp.kubeconfig
 
 *.kubeconfig
 .DS_Store
+*.zip
