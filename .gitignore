@@ -5,3 +5,5 @@ mcp.kubeconfig
 .claude
 
 
+*.kubeconfig
+.DS_Store
