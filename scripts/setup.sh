@@ -4,10 +4,22 @@ set -euo pipefail
 # Setup script for MCP_For_DevOps read-only Kubernetes MCP.
 # Creates ServiceAccount + namespace-scoped RBAC (default), builds kubeconfig
 # with REAL cluster CA data (no --insecure-skip-tls-verify), and prints agent configs.
-# Usage: ./scripts/setup.sh [namespace] [duration] (default: demo, 2h)
+# Usage: ./scripts/setup.sh [namespace] [duration] [--cluster]
+#   default: namespace "demo", token duration 2h, namespace-scoped access only.
+#   --cluster also applies rbac-cluster.yaml (all namespaces + nodes). Opt-in only.
 
-NAMESPACE="${1:-demo}"
-TOKEN_DURATION="${2:-2h}"
+cd "$(dirname "$0")/.."   # always run from the repo root
+
+CLUSTER_MODE=false
+POSITIONAL=()
+for arg in "$@"; do
+  case "$arg" in
+    --cluster) CLUSTER_MODE=true ;;
+    *) POSITIONAL+=("$arg") ;;
+  esac
+done
+NAMESPACE="${POSITIONAL[0]:-demo}"
+TOKEN_DURATION="${POSITIONAL[1]:-2h}"
 SA_NAME="mcp-readonly"
 
 echo "=== MCP_For_DevOps Setup ==="
@@ -27,11 +39,13 @@ metadata:
 EOF
 
 echo "--- 3. Applying namespace-scoped RBAC (rbac.yaml) ---"
-kubectl apply -f rbac.yaml
+sed "s/namespace: demo/namespace: $NAMESPACE/g" rbac.yaml | kubectl apply -f -
 
-echo "--- 4. Applying optional ClusterRole (rbac-cluster.yaml) ---"
-if [ -f rbac-cluster.yaml ]; then
-  kubectl apply -f rbac-cluster.yaml
+if [ "$CLUSTER_MODE" = true ]; then
+  echo "--- 4. Applying cluster-wide read-only ClusterRole (--cluster) ---"
+  sed "s/namespace: demo/namespace: $NAMESPACE/g" rbac-cluster.yaml | kubectl apply -f -
+else
+  echo "--- 4. Skipping cluster-wide role (namespace-only). Re-run with --cluster to also read nodes, namespaces and other namespaces. ---"
 fi
 
 echo "--- 5. Building kubeconfig with REAL CA (no --insecure-skip-tls-verify) ---"

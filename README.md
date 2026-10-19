@@ -13,7 +13,7 @@ claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/../mcp.kubeconfig" -- node "$(
 
 **Two walls:**
 1. **Code wall:** The MCP server (`k8s-mcp/server.js`) exposes only 21 read-only tools (`readOnlyHint: true`). No delete/patch/apply/scale/exec/restart tool exists anywhere.
-2. **Cluster wall:** `rbac.yaml` grants only `get`/`list`/`watch` to `mcp-readonly` ServiceAccount. `rbac-cluster.yaml` adds nodes/namespaces/metrics. Kubernetes itself returns 403 Forbidden on writes.
+2. **Cluster wall:** `rbac.yaml` grants only `get`/`list`/`watch` to the `mcp-readonly` ServiceAccount, in one namespace by default. Passing `--cluster` to the setup script (opt-in) also applies `rbac-cluster.yaml` for nodes, namespaces and all-namespace reads. Kubernetes itself returns 403 Forbidden on writes.
 
 **Supported agents:** Claude Code, Cursor, VS Code Copilot, Gemini CLI, Codex CLI (see `docs/clients/` for copy-paste snippets).
 

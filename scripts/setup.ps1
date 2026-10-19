@@ -2,10 +2,12 @@
 # Creates ServiceAccount + namespace RBAC, builds kubeconfig with real CA.
 param(
     [string]$Namespace = "demo",
-    [string]$Duration = "2h"
+    [string]$Duration = "2h",
+    [switch]$Cluster   # opt-in: also apply rbac-cluster.yaml (all namespaces + nodes)
 )
 
 $ErrorActionPreference = "Stop"
+Set-Location (Join-Path $PSScriptRoot "..")   # always run from the repo root
 $SA = "mcp-readonly"
 
 Write-Host "=== MCP_For_DevOps Setup (PowerShell) ==="
@@ -24,8 +26,12 @@ metadata:
 "@ | kubectl apply -f -
 
 Write-Host "--- 3. RBAC ---"
-kubectl apply -f rbac.yaml
-if (Test-Path rbac-cluster.yaml) { kubectl apply -f rbac-cluster.yaml }
+(Get-Content rbac.yaml -Raw) -replace "namespace: demo", "namespace: $Namespace" | kubectl apply -f -
+if ($Cluster) {
+    (Get-Content rbac-cluster.yaml -Raw) -replace "namespace: demo", "namespace: $Namespace" | kubectl apply -f -
+} else {
+    Write-Host "Skipping cluster-wide role (namespace-only). Re-run with -Cluster to include nodes and all namespaces."
+}
 
 Write-Host "--- 4. Token + kubeconfig (real CA) ---"
 $token = (kubectl create token $SA -n $Namespace --duration $Duration).Trim()
