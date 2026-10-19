@@ -39,22 +39,15 @@ $context = kubectl config view --minify -o jsonpath='{.contexts[?(@.name=="'+(ku
 if (-not $context) { $context = $Namespace }
 $cluster = (kubectl config view --minify -o jsonpath='{.clusters[0].name}')
 $server = kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-# Read CA from kubeconfig file directly
-$home = $env:HOME; if (-not $home) { $home = $env:USERPROFILE }
-$kubeConfigPath = "$home/.kube/config"
-$caData = ""
-if (Test-Path $kubeConfigPath) {
-    $kubeYaml = Get-Content $kubeConfigPath -Raw | ConvertFrom-Yaml -ErrorAction SilentlyContinue
-    if ($kubeYaml -and $kubeYaml.clusters) {
-        $caData = $kubeYaml.clusters[0].cluster."certificate-authority-data"
-    }
-}
+# Read the CA of the CURRENT context's cluster (same source as $server above).
+$caData = (kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
 if (-not $caData) {
-    $caFile = (kubectl config view --minify -o jsonpath='{.clusters[0].cluster.certificate-authority}').Trim()
+    $caFile = (kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority}')
     if ($caFile -and (Test-Path $caFile)) {
         $caData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($caFile))
     }
 }
+if (-not $caData) { throw "Could not find the cluster CA for the current kubectl context." }
 $mcpConfig = @"
 apiVersion: v1
 kind: Config

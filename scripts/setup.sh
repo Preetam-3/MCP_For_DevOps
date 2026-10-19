@@ -51,23 +51,20 @@ fi
 echo "--- 5. Building kubeconfig with REAL CA (no --insecure-skip-tls-verify) ---"
 TOKEN=$(kubectl create token "$SA_NAME" -n "$NAMESPACE" --duration="$TOKEN_DURATION")
 SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-# Read real CA from kubeconfig file directly (not redacted by kubectl config view)
-python3 - <<PY
-import yaml, sys
-with open("${HOME}/.kube/config") as f:
-    d = yaml.safe_load(f)
-ca = d["clusters"][0]["cluster"].get("certificate-authority-data", "")
-if not ca:
-    ca_file = d["clusters"][0]["cluster"].get("certificate-authority", "")
-    if ca_file:
-        with open(ca_file) as cf:
-            import base64
-            ca = base64.b64encode(cf.read().encode()).decode()
-with open("${CA_OUT:-/tmp/ca.txt}", "w") as out:
-    out.write(ca or "")
-PY
-CA_FILE="${CA_OUT:-/tmp/ca.txt}"
-CA_DATA=$(cat "$CA_FILE" 2>/dev/null | tr -d '\n')
+# Read the CA of the CURRENT context's cluster (same source as $SERVER above).
+# --raw keeps the certificate data unredacted. No Python or PyYAML needed.
+CA_DATA=$(kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+if [ -z "$CA_DATA" ]; then
+  CA_PATH=$(kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority}')
+  if [ -n "$CA_PATH" ] && [ -f "$CA_PATH" ]; then
+    CA_DATA=$(base64 < "$CA_PATH" | tr -d '\n')
+  fi
+fi
+if [ -z "$CA_DATA" ]; then
+  echo "ERROR: could not find the cluster CA for the current kubectl context." >&2
+  echo "Check: kubectl config current-context" >&2
+  exit 1
+fi
 rm -f mcp.kubeconfig
 cat > mcp.kubeconfig <<EOF
 apiVersion: v1
