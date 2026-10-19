@@ -92,16 +92,11 @@ echo "Kubeconfig written: $(pwd)/mcp.kubeconfig"
 echo "--- 6. Ready-to-paste agent configs ---"
 cat <<AGENTS
 # Claude Code
-claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- node k8s-mcp/server.js
+claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 
-# Cursor / VS Code Copilot (add to .cursor/mcp.json or settings)
-# { "mcpServers": { "k8s-readonly": { "command": "node", "args": ["k8s-mcp/server.js"], "env": { "KUBECONFIG": "$(pwd)/mcp.kubeconfig" } } } }
-
-# Codex CLI
-claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- node k8s-mcp/server.js
-
-# Gemini CLI
-# Add to agent config: env KUBECONFIG="$(pwd)/mcp.kubeconfig"; command node k8s-mcp/server.js
+# Cursor (.cursor/mcp.json), Gemini CLI (~/.gemini/settings.json), VS Code (.vscode/mcp.json), Codex CLI (config.toml):
+# copy the snippet for your agent from docs/clients/ and set KUBECONFIG to:
+#   $(pwd)/mcp.kubeconfig
 AGENTS
 
 echo "--- Setup complete ---"

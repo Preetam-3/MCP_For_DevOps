@@ -1,19 +1,55 @@
 {
   "name": "k8s-readonly-mcp",
   "version": "1.0.0",
-  "bin": {
-    "k8s-readonly": "./server.js"
+  "description": "Read-only Kubernetes MCP server for AI agents (Claude Code, Cursor, Gemini CLI, Codex CLI, VS Code Copilot). It has no write tools, and Kubernetes RBAC enforces read-only access as a second wall.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "kubernetes",
+    "k8s",
+    "devops",
+    "sre",
+    "readonly",
+    "rbac",
+    "ai-agent",
+    "claude-code"
+  ],
+  "license": "MIT",
+  "author": "Preetam-3",
+  "homepage": "https://github.com/Preetam-3/MCP_For_DevOps#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Preetam-3/MCP_For_DevOps.git",
+    "directory": "k8s-mcp"
   },
+  "bugs": {
+    "url": "https://github.com/Preetam-3/MCP_For_DevOps/issues"
+  },
+  "type": "module",
+  "bin": {
+    "k8s-readonly-mcp": "./server.js",
+    "k8s-readonly": "./server.js",
+    "k8s-readonly-doctor": "./scripts/doctor.js",
+    "k8s-readonly-verify": "./scripts/verify-readonly.js"
+  },
+  "files": [
+    "server.js",
+    "lib/",
+    "tools/",
+    "prompts/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "node server.js",
     "test": "node test/safety.js",
-    "verify-readonly": "node ../scripts/verify-readonly.js",
-    "doctor": "node ../scripts/doctor.js"
+    "verify-readonly": "node scripts/verify-readonly.js",
+    "doctor": "node scripts/doctor.js"
   },
-  "engines": { "node": ">=18" },
-  "private": true,
-  "type": "module",
-  "description": "Read-only Kubernetes MCP server for Claude Code",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@kubernetes/client-node": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",

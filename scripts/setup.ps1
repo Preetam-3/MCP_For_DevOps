@@ -72,5 +72,5 @@ $mcpConfig | Out-File -FilePath "mcp.kubeconfig" -Encoding utf8 -Force
 Write-Host "Kubeconfig: $(Resolve-Path mcp.kubeconfig)"
 
 Write-Host "--- Ready-to-paste (Claude Code / Cursor) ---"
-Write-Host "claude mcp add k8s-readonly -e KUBECONFIG=`"$(Resolve-Path mcp.kubeconfig)`" -- node k8s-mcp/server.js"
+Write-Host "claude mcp add k8s-readonly -e KUBECONFIG=`"$(Resolve-Path mcp.kubeconfig)`" -- npx -y k8s-readonly-mcp"
 Write-Host "--- Done ---"

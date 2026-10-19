@@ -1,5 +1,15 @@
 # Gemini CLI
-# Add to agent config or environment:
-export KUBECONFIG=/path/to/mcp.kubeconfig
-# Then run the server alongside agent:
-node /path/to/k8s-mcp/server.js
+
+Add to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "k8s-readonly": {
+      "command": "npx",
+      "args": ["-y", "k8s-readonly-mcp"],
+      "env": { "KUBECONFIG": "/path/to/mcp.kubeconfig" }
+    }
+  }
+}
+```
