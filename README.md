@@ -1,19 +1,32 @@
-# 🤖 Agentic DevOps — Governed AI Access to Kubernetes
+# Agentic DevOps — Read-Only Kubernetes MCP Server
 
-**Connect an AI agent (Claude Code) to a real Kubernetes cluster — safely.**
-It can look at everything. It can change nothing. And this repo proves it.
+**Pitch:** Give any AI agent (Claude Code, Cursor, Gemini CLI, Codex CLI, VS Code Copilot) full visibility into a Kubernetes cluster — pods, logs, events, deployments, nodes, metrics — while enforcing zero mutation through two independent walls: no mutating tool exists in the code, and Kubernetes RBAC returns 403 on any write attempt.
+
+**30-second install:**
+```bash
+kubectl create namespace demo
+kubectl apply -f rbac.yaml
+./scripts/setup.sh demo
+cd k8s-mcp && npm install
+claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/../mcp.kubeconfig" -- node "$(pwd)/server.js"
+```
+
+**Two walls:**
+1. **Code wall:** The MCP server (`k8s-mcp/server.js`) exposes only 21 read-only tools (`readOnlyHint: true`). No delete/patch/apply/scale/exec/restart tool exists anywhere.
+2. **Cluster wall:** `rbac.yaml` grants only `get`/`list`/`watch` to `mcp-readonly` ServiceAccount. `rbac-cluster.yaml` adds nodes/namespaces/metrics. Kubernetes itself returns 403 Forbidden on writes.
+
+**Supported agents:** Claude Code, Cursor, VS Code Copilot, Gemini CLI, Codex CLI (see `docs/clients/` for copy-paste snippets).
+
+**Demo video:** `docs/demo.mp4` (`Agentic Cluster.mp4` renamed, no spaces).
+
+**Safety proof:** Run `node scripts/verify-readonly.js` (expects 403 on writes) and `node k8s-mcp/test/safety.js` (fails build if any mutating API is registered).
+
+**Package:** Published as `k8s-readonly-mcp` (npm). Includes `bin` entry (`k8s-readonly`), `Dockerfile` (non-root user), and `skills/k8s-readonly-triage.zip` for Agensi marketplace upload.
+
+**License:** MIT (`LICENSE` included).
 
 ---
 
-## 🎥 Demo
-
-https://github.com/user-attachments/assets/b26b4811-03ad-46ad-9b9f-2337cc5878d6
-
-> **📌 Demo video:** `docs/demo.mp4` (local). Upload to GitHub release assets or a GitHub Issue for inline rendering, then replace with the generated `github.com/user-attachments/assets/...` URL.
-
-This demo shows the AI agent investigating a Kubernetes incident through the read-only MCP server while Kubernetes RBAC prevents mutation.
-
----
 
 ## 🧠 What This Project Actually Is (in plain words)
 
@@ -30,7 +43,7 @@ Here's the trick, in three ideas:
    Using Kubernetes RBAC (Role-Based Access Control), I gave that identity permission to only `get` and `list` — never `create`, `delete`, `patch`, or even run a command inside a pod. If it tries anything else, Kubernetes itself rejects it with a `403 Forbidden` — the same way a locked door doesn't care how nicely you ask.
 
 3. **Build the agent's toolbox with no "dangerous" tools in it at all.**
-   The AI doesn't talk to Kubernetes directly. It talks through a small bridge program I wrote (an **MCP server**) that only exposes four abilities: *list pods, read a pod, read logs, read events.* There is no `delete_pod` function anywhere in the code — so even if the AI "wanted" to delete something, there's no button for it to press.
+    The AI talks through a small bridge program (`k8s-mcp/server.js`) that exposes 21 read-only abilities. No delete, patch, scale, restart, or exec tool exists — so even if the AI "wanted" to change something, there's no button for it.
 
 The result: two independent walls between the AI and my cluster — one in the code (no delete tool exists), one in Kubernetes itself (the credential is denied). Both have to fail for anything bad to happen, and the demo video proves both hold.
 
@@ -52,7 +65,7 @@ flowchart LR
 
 | Layer | What it is | What it enforces |
 |---|---|---|
-| **MCP Server** (`k8s-mcp/server.js`) | A Node.js program exposing 4 read-only tools to Claude Code | The agent can only *call* things that exist — and nothing mutating exists |
+| **MCP Server** (`k8s-mcp/server.js`) | A Node.js MCP server exposing 21 read-only tools (`readOnlyHint: true`) | No mutating tool exists; every handler is read-only by design |
 | **ServiceAccount** (`mcp-readonly`) | A dedicated Kubernetes identity for the agent | Not your admin login — a separate, disposable identity |
 | **RBAC Role + RoleBinding** (`rbac.yaml`) | Grants `get`/`list` on pods, events, and pod logs — nothing else, in one namespace only | Enforced by the Kubernetes API server itself, not by the AI "choosing" to behave |
 | **Scoped kubeconfig** (`mcp.kubeconfig`) | A short-lived token bound to `mcp-readonly` | Even a direct write attempt with this exact credential gets rejected |
@@ -63,13 +76,36 @@ flowchart LR
 
 ```
 MCP_For_DevOps/
-├── README.md              # you are here
-├── rbac.yaml               # ServiceAccount + Role + RoleBinding (the permission wall)
-├── k8s-mcp/
-│   ├── package.json
-│   └── server.js           # the read-only MCP server (the tool wall)
-├── mcp.kubeconfig           # scoped credential (git-ignored — never commit this)
-└── .gitignore
+├── README.md              # pitch + install + two-walls explanation
+├── LICENSE                 # MIT
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── Dockerfile
+├── rbac.yaml               # namespace-scoped Role + RoleBinding
+├── rbac-cluster.yaml       # optional ClusterRole (nodes/namespaces/metrics)
+├── scripts/
+│   ├── setup.sh            # one-shot SA + kubeconfig (real CA)
+│   ├── setup.ps1
+│   ├── verify-readonly.js  # proves 403 on writes
+│   └── doctor.js           # environment health check
+├── docs/
+│   ├── demo.mp4            # demo video (no spaces)
+│   └── clients/            # agent snippets (Claude, Cursor, Gemini, Codex, VS Code)
+├── skills/
+│   └── k8s-readonly-triage/
+│       ├── SKILL.md         # aligned with real 21 tools + prompts
+│       ├── references/
+│       └── examples/
+├── .github/workflows/
+│   └── ci.yml              # lint + safety + test
+└── k8s-mcp/
+    ├── package.json        # bin entry, scripts, files whitelist, engines >= 18
+    ├── server.js
+    ├── lib/                 # kube (namespace allowlist), redact, limits
+    ├── tools/               # 21 read-only tool modules
+    ├── prompts/             # 4 MCP prompts
+    └── test/                # safety + basic unit skeleton
 ```
 
 ---
@@ -92,15 +128,11 @@ kubectl run crasher --image=busybox:1.36 --restart=Always -n demo -- /bin/sh -c 
 kubectl apply -f rbac.yaml
 ```
 
-### 4. Build the scoped credential
+### 4. Build the scoped credential (one line)
 ```bash
-TOKEN=$(kubectl create token mcp-readonly -n demo --duration=1h)
-SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-kubectl config set-cluster lab --server="$SERVER" --insecure-skip-tls-verify=true --kubeconfig=mcp.kubeconfig
-kubectl config set-credentials mcp-readonly --token="$TOKEN" --kubeconfig=mcp.kubeconfig
-kubectl config set-context mcp --cluster=lab --user=mcp-readonly --namespace=demo --kubeconfig=mcp.kubeconfig
-kubectl config use-context mcp --kubeconfig=mcp.kubeconfig
+./scripts/setup.sh demo 2h
 ```
+This creates the `mcp-readonly` identity, applies RBAC, builds `mcp.kubeconfig` with the real cluster CA (no `--insecure-skip-tls-verify`), and prints ready-to-paste agent snippets.
 
 ### 5. Install and register the MCP server
 ```bash
