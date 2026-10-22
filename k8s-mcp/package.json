@@ -48,7 +48,7 @@
     "doctor": "node scripts/doctor.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "dependencies": {
     "@kubernetes/client-node": "^2.0.0",

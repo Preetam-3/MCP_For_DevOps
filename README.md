@@ -111,7 +111,7 @@ MCP_For_DevOps/
 
 ### 1. Prerequisites
 - A local Kubernetes cluster (`kind` or `minikube`)
-- `kubectl`, `node` (20+), and the [Claude Code](https://claude.com/product/claude-code) CLI installed
+- `kubectl`, `node` (22.19+), and the [Claude Code](https://claude.com/product/claude-code) CLI installed
 
 ### 2. Spin up the lab
 ```bash

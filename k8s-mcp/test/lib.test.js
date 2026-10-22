@@ -6,6 +6,7 @@ process.env.NAMESPACE_ALLOWLIST = "demo,staging"; // must be set before kube.js 
 const { redact } = await import("../lib/redact.js");
 const { capText } = await import("../lib/limits.js");
 const { checkNamespace } = await import("../lib/kube.js");
+const { isSupportedNode } = await import("../lib/node-version.js");
 
 test("redact: removes JWTs and bearer tokens", () => {
   const jwt = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl";
@@ -43,4 +44,13 @@ test("checkNamespace: allows listed namespaces, refuses everything else", () => 
   assert.equal(checkNamespace("demo"), true);
   assert.equal(checkNamespace("staging"), true);
   assert.throws(() => checkNamespace("kube-system"), /not in NAMESPACE_ALLOWLIST/);
+});
+
+test("isSupportedNode: accepts 22.19+ and rejects older versions", () => {
+  assert.equal(isSupportedNode("22.19.0"), true);
+  assert.equal(isSupportedNode("v22.22.2"), true);
+  assert.equal(isSupportedNode("24.1.0"), true);
+  assert.equal(isSupportedNode("22.18.9"), false);
+  assert.equal(isSupportedNode("20.20.2"), false);
+  assert.equal(isSupportedNode("18.0.0"), false);
 });

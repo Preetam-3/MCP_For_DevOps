@@ -1,5 +1,5 @@
 # Read-only Kubernetes MCP server image (stdio transport, no network port).
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 # Install production dependencies first so this layer is cached.

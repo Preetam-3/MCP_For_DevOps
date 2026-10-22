@@ -2,6 +2,7 @@
 // doctor: check the environment and print a fix for anything that is wrong.
 // Uses whatever kubectl would use (KUBECONFIG or ~/.kube/config).
 import { spawnSync } from "node:child_process";
+import { isSupportedNode, MIN_NODE_TEXT } from "../lib/node-version.js";
 
 function kubectl(args) {
   const r = spawnSync("kubectl", args, { encoding: "utf8" });
@@ -17,9 +18,8 @@ const bad = (m, fix) => { console.log(`FAIL  ${m}`); if (fix) console.log(`     
 console.log("=== k8s-readonly doctor ===");
 console.log(`KUBECONFIG : ${process.env.KUBECONFIG || "(not set, using ~/.kube/config)"}\n`);
 
-const major = parseInt(process.versions.node.split(".")[0], 10);
-if (major >= 20) ok(`Node ${process.versions.node}`);
-else bad(`Node ${process.versions.node} is too old`, "install Node 20 or newer");
+if (isSupportedNode(process.versions.node)) ok(`Node ${process.versions.node}`);
+else bad(`Node ${process.versions.node} is too old`, `install Node ${MIN_NODE_TEXT} or newer`);
 
 const client = kubectl(["version", "--client"]);
 if (client.missing) { bad("kubectl is not installed", "install kubectl: https://kubernetes.io/docs/tasks/tools/"); process.exit(1); }

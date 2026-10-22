@@ -2,6 +2,7 @@
 // Read-only Kubernetes MCP server.
 // It exposes get/list/diagnose/read-only tools ONLY.
 // There is deliberately no mutating tool (create/delete/patch/replace/exec/scale/apply/evict/restart/update).
+import "./lib/require-node.js"; // must stay first: clear error on unsupported Node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
