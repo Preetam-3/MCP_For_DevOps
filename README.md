@@ -19,7 +19,7 @@ claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-
 
 **Safety proof:** Run `KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo npx -y -p k8s-readonly-mcp k8s-readonly-verify` (fails unless every write is denied, including a real delete that must return 403) and `node k8s-mcp/test/safety.js` (fails the build if any mutating API is registered). `k8s-readonly-doctor` checks your environment.
 
-**Package:** `k8s-readonly-mcp` on npm (run with `npx -y k8s-readonly-mcp`). The repository also contains a `Dockerfile` and the `skills/k8s-readonly-triage/` skill folder.
+**Package:** `k8s-readonly-mcp` on npm (run with `npx -y k8s-readonly-mcp`). The repository also contains a `Dockerfile` (see `docs/docker.md`) and the `skills/k8s-readonly-triage/` skill folder.
 
 **License:** MIT (`LICENSE` included).
 
@@ -111,7 +111,7 @@ MCP_For_DevOps/
 
 ### 1. Prerequisites
 - A local Kubernetes cluster (`kind` or `minikube`)
-- `kubectl`, `node` (18+), and the [Claude Code](https://claude.com/product/claude-code) CLI installed
+- `kubectl`, `node` (20+), and the [Claude Code](https://claude.com/product/claude-code) CLI installed
 
 ### 2. Spin up the lab
 ```bash

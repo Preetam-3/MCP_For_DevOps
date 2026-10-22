@@ -1,17 +1,23 @@
+// Redacts secret-looking strings from text before it is returned to the agent.
+// Each entry is [pattern, replacement]. Order matters: specific patterns run first.
 const SECRET_PATTERNS = [
-  /eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g,
-  /bearer [a-zA-Z0-9_-]+/gi,
-  /token=[a-zA-Z0-9_-]+/gi,
-  /password=[a-zA-Z0-9_-]+/gi,
-  /secret=[a-zA-Z0-9_-]+/gi,
-  /[a-zA-Z0-9_-]{32,}/g,
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "***REDACTED***"],
+  [/eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, "***REDACTED***"], // JWT
+  [/\bbearer\s+[a-zA-Z0-9._~+/=-]+/gi, "***REDACTED***"],
+  [/\bbasic\s+[a-zA-Z0-9+/=]{8,}/gi, "***REDACTED***"],
+  [/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, "***REDACTED***"], // AWS access key id
+  [/\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, "***REDACTED***"], // GitHub tokens
+  [/\bsk-[A-Za-z0-9_-]{16,}\b/g, "***REDACTED***"], // API keys of the sk-... form
+  // key=value, key: value and "key":"value" forms; the key stays, the value goes
+  [/((?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|authorization)["']?\s*[:=]\s*["']?)[^\s"',;&}]+/gi, "$1***REDACTED***"],
+  [/[a-zA-Z0-9_-]{32,}/g, "***REDACTED***"], // any long opaque string
 ];
 
 export function redact(text) {
   if (typeof text !== "string") return text;
   let result = text;
-  for (const p of SECRET_PATTERNS) {
-    result = result.replace(p, "***REDACTED***");
+  for (const [pattern, replacement] of SECRET_PATTERNS) {
+    result = result.replace(pattern, replacement);
   }
   return result;
 }

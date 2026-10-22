@@ -41,7 +41,7 @@ KUBECONFIG=./mcp.kubeconfig npx -y -p k8s-readonly-mcp k8s-readonly-doctor      
 
 ## Requirements
 
-Node.js 18 or newer, `kubectl`, and a Kubernetes cluster.
+Node.js 20 or newer, `kubectl`, and a Kubernetes cluster.
 
 ## License
 

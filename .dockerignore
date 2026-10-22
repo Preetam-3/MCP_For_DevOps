@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+k8s-mcp/node_modules
+mcp.kubeconfig
+*.kubeconfig
+.env
+docs
+skills
+*.md
+STATUS.md

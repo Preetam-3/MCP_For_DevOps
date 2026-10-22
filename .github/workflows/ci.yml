@@ -1,11 +1,41 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
-  lint-and-test:
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    defaults:
+      run:
+        working-directory: k8s-mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: k8s-mcp/package-lock.json
+      - run: npm ci
+      - name: Safety and unit tests
+        run: npm test
+      - name: Dependency audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Package contents
+        run: npm pack --dry-run
+
+  integration:
+    name: Real cluster (kind) and Docker image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,6 +43,17 @@ jobs:
         with:
           node-version: 20
       - run: npm ci --prefix k8s-mcp
-      - run: node k8s-mcp/test/safety.js
-      - run: node k8s-mcp/test/unit.js
-      - run: echo "PASS: lint + safety + unit checks"
+      - uses: helm/kind-action@v1
+      - name: Create the read-only identity
+        run: ./scripts/setup.sh demo 1h
+      - name: Prove writes are denied (cluster wall)
+        run: KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo node k8s-mcp/scripts/verify-readonly.js
+      - name: Build Docker image
+        run: docker build -t k8s-readonly-mcp .
+      - name: Docker image starts and lists its tools
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+          | timeout 60 docker run -i --rm k8s-readonly-mcp | grep -q '"name":"list_pods"'

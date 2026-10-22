@@ -18,8 +18,8 @@ console.log("=== k8s-readonly doctor ===");
 console.log(`KUBECONFIG : ${process.env.KUBECONFIG || "(not set, using ~/.kube/config)"}\n`);
 
 const major = parseInt(process.versions.node.split(".")[0], 10);
-if (major >= 18) ok(`Node ${process.versions.node}`);
-else bad(`Node ${process.versions.node} is too old`, "install Node 18 or newer");
+if (major >= 20) ok(`Node ${process.versions.node}`);
+else bad(`Node ${process.versions.node} is too old`, "install Node 20 or newer");
 
 const client = kubectl(["version", "--client"]);
 if (client.missing) { bad("kubectl is not installed", "install kubectl: https://kubernetes.io/docs/tasks/tools/"); process.exit(1); }
