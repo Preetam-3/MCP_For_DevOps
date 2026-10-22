@@ -1,6 +1,6 @@
 ---
 name: k8s-readonly-triage
-description: Investigate unhealthy Kubernetes workloads safely using a READ-ONLY MCP server (k8s-readonly). Use this skill whenever the user mentions a failing, crashing, restarting, pending, stuck, or slow pod, deployment, rollout, service, or node, or asks "why is my pod/app down", "check my cluster", "debug Kubernetes", CrashLoopBackOff, OOMKilled, ImagePullBackOff, Pending, or readiness/liveness probe failures, even if they do not mention this skill. The agent can inspect pods, logs, events, deployments, services and nodes but can never change the cluster, so it explains the root cause and hands the human exact fix commands.
+description: "Use when the user asks to debug, investigate, or explain a failing Kubernetes workload: 'why is my pod crashing', 'my deployment is stuck', 'check my cluster', 'why is this pod pending', or any mention of CrashLoopBackOff, OOMKilled, ImagePullBackOff, a failed rollout, or probe failures. Works through the read-only k8s-readonly MCP server (21 get/list tools) to find the root cause from pods, events, logs and nodes, then gives the human the exact kubectl fix commands. It can never change the cluster."
 ---
 
 # Kubernetes Read-Only Triage
@@ -21,7 +21,15 @@ Because of this:
 
 Look for the `k8s-readonly` MCP tools (list_namespaces, list_pods, get_pod, get_pod_logs, list_events, and so on). Tool names may be prefixed by your client (for example `mcp__k8s-readonly__list_pods`); use whatever the server actually exposes.
 
-If they are missing, stop and tell the user: the MCP server is not connected. Point them to the install section of the repo README (one-line `npx` install plus `scripts/setup.sh`), then continue once it is connected. Do not guess cluster state from memory.
+If they are missing, stop and tell the user the MCP server is not connected. Give them these one-time steps (needs Node.js 22.19+ and kubectl):
+
+```bash
+git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
+./scripts/setup.sh <namespace> 8h      # creates the read-only identity and ./mcp.kubeconfig
+claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+```
+
+For other agents (Cursor, VS Code, Gemini CLI, Codex CLI) point them to `docs/clients/` in that repository. Continue once the tools are connected. Do not guess cluster state from memory.
 
 If a tool returns an authorization or expiry error, report it plainly (token expired, namespace not in the allowlist, metrics-server missing) and give the fix from `references/setup-troubleshooting.md`.
 
@@ -36,7 +44,7 @@ Follow this order. Stop early once the root cause is proven by evidence.
 5. **Read the logs.** `get_pod_logs`. If the container restarted, read the **previous** container logs first, because the current one may have only just started. Use a bounded tail.
 6. **Walk up to the owner.** `get_deployment`, `list_replicasets`, `get_rollout_status`. Did the problem start with a new rollout or image tag?
 7. **Check dependencies.** `list_services` and `list_endpoints` (does the service have ready endpoints?), `list_ingresses`, `list_pvcs` for storage problems.
-8. **Check the node and capacity.** `list_nodes` / `get_node` for NotReady, memory or disk pressure, taints. Use `get_pod_metrics` / `get_node_metrics` only if metrics-server exists.
+8. **Check the node and capacity.** `list_nodes` / `get_node` for NotReady, memory or disk pressure, taints. Use `get_pod_metrics` / `get_node_metrics` only if metrics-server exists. By default the credential is namespace-only, so the node tools and `list_namespaces` may return 403 Forbidden. That is expected, not a failure: say that node-level data was not available, and tell the user they can choose to re-run `./scripts/setup.sh <namespace> 8h --cluster` if they want it. Never ask for an admin kubeconfig.
 9. **Conclude** with the report format below.
 
 Use `references/runbooks.md` to match symptoms to likely causes. Read only the section you need.
@@ -70,6 +78,7 @@ If the user asks you to delete, restart, scale or patch something, explain that 
 
 ## Reference files
 
+- `references/tools.md`: what each of the 21 tools returns and its parameters. Read it if you are unsure which tool to call.
 - `references/runbooks.md`: symptom-to-cause guides (CrashLoopBackOff, OOMKilled, ImagePullBackOff, Pending, failed rollout, probe failures, no endpoints, node NotReady). Read the matching section only.
 - `references/setup-troubleshooting.md`: fixing connection, token, RBAC and allowlist errors.
-- `examples/sample-investigation.md`: a worked example of the expected report.
+- `examples/sample-investigation.md` and `examples/pending-pod.md`: worked examples of the expected report.
