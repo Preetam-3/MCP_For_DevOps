@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (pending)
+## 1.0.0 (2026-10-22)
 - Read-only Kubernetes MCP server (k8s-readonly)
 - 21 read-only tools with `readOnlyHint: true`
 - Namespace allowlist (`NAMESPACE_ALLOWLIST`), log redaction, output caps
