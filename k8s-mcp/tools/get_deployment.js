@@ -2,6 +2,7 @@ import { z } from "zod";
 import { KubeConfig, AppsV1Api } from "@kubernetes/client-node";
 import { checkNamespace } from "../lib/kube.js";
 import { capText } from "../lib/limits.js";
+import { sanitizeObject } from "../lib/redact.js";
 
 export const config = {
   name: "get_deployment",
@@ -14,5 +15,5 @@ export async function handler({ namespace, name }) {
   const kc = new KubeConfig(); kc.loadFromDefault();
   const apps = kc.makeApiClient(AppsV1Api);
   const d = await apps.readNamespacedDeployment({ namespace, name });
-  return { content: [{ type: "text", text: capText(JSON.stringify(d, null, 2)) }] };
+  return { content: [{ type: "text", text: capText(JSON.stringify(sanitizeObject(d), null, 2)) }] };
 }

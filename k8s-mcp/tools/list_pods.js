@@ -4,12 +4,13 @@ import { KubeConfig } from "@kubernetes/client-node";
 import { checkNamespace } from "../lib/kube.js";
 import { redact } from "../lib/redact.js";
 import { capText } from "../lib/limits.js";
+import { podStatus, readyCount } from "../lib/pod-status.js";
 
 export const config = {
   name: "list_pods",
   annotations: {
     title: "List pods",
-    description: "List pods in a namespace with phase, restarts, node, and age.",
+    description: "List pods in a namespace with status (as kubectl shows it, for example CrashLoopBackOff or ImagePullBackOff), ready count, phase, restarts, node, and age.",
     readOnlyHint: true,
   },
   inputSchema: {
@@ -27,6 +28,8 @@ export async function handler({ namespace, labelSelector }) {
   const pods = res.items.map((p) => ({
     name: p.metadata?.name,
     namespace: p.metadata?.namespace,
+    status: podStatus(p),
+    ready: readyCount(p),
     phase: p.status?.phase,
     node: p.spec?.nodeName,
     restarts: p.status?.containerStatuses?.reduce((n, c) => n + (c.restartCount ?? 0), 0) ?? 0,

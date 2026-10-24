@@ -13,7 +13,7 @@ The read-only guarantee covers this MCP server and the credential it uses. It ca
 - The server refuses to start unless `KUBECONFIG` is set, so it cannot silently run with your admin credential.
 - `mcp.kubeconfig` is git-ignored (`*.kubeconfig`). Never commit it.
 - `scripts/setup.sh` creates a ServiceAccount token with a short expiry (default 2 hours).
-- Log output is redacted for common secret formats (tokens, passwords, API keys, private keys) before it reaches the agent. Redaction is best-effort; do not rely on it as your only protection.
+- Everything the tools return is masked for common secret formats (tokens, passwords, API keys, private keys). Environment variable values with secret-like names are masked in pod and deployment output, and the last-applied copy of the manifest is left out. Secrets themselves are not readable at all (no permission). Redaction is best-effort: do not rely on it as your only protection, and keep real credentials out of plain environment variables and logs.
 
 ## Reporting a vulnerability
 Please use GitHub's private vulnerability reporting: open the repository's **Security** tab and choose **Report a vulnerability**. Do not open a public issue for security problems.

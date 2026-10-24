@@ -11,6 +11,7 @@ const log = (...args) => console.error("[k8s-mcp]", ...args);
 
 import { createRequire } from "node:module";
 import { formatError } from "./lib/errors.js";
+import { redactStructured } from "./lib/redact.js";
 const { version } = createRequire(import.meta.url)("./package.json");
 
 const server = new McpServer({ name: "k8s-readonly", version });
@@ -46,7 +47,9 @@ function reg(name, cfg, handler) {
     inputSchema: cfg.inputSchema,
   }, async (args, extra) => {
     try {
-      return await handler(args);
+      const result = await handler(args);
+      // Second safety net for every tool: mask secret-looking strings in whatever text is returned.
+      return { ...result, content: (result.content ?? []).map((c) => (c.type === "text" ? { ...c, text: redactStructured(c.text) } : c)) };
     } catch (err) {
       log("error in", name, ":", err.message || err);
       return { isError: true, content: [{ type: "text", text: formatError(err) }] };

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { KubeConfig, CoreV1Api } from "@kubernetes/client-node";
 import { checkNamespace } from "../lib/kube.js";
 import { capText } from "../lib/limits.js";
+import { sanitizeObject } from "../lib/redact.js";
 
 export const config = {
   name: "get_pod",
@@ -21,5 +22,5 @@ export async function handler({ namespace, name }) {
   const kc = new KubeConfig(); kc.loadFromDefault();
   const core = kc.makeApiClient(CoreV1Api);
   const pod = await core.readNamespacedPod({ namespace, name });
-  return { content: [{ type: "text", text: capText(JSON.stringify(pod, null, 2)) }] };
+  return { content: [{ type: "text", text: capText(JSON.stringify(sanitizeObject(pod), null, 2)) }] };
 }

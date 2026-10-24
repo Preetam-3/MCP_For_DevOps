@@ -37,6 +37,20 @@ before(async () => {
       if (u.searchParams.get("previous") === "true") return send(400, "application/json", status(400, "BadRequest", 'previous terminated container "crasher" in pod "crasher" not found'));
       return send(200, "text/plain", "starting\npassword=hunter2\n");
     }
+    if (u.pathname === "/api/v1/namespaces/demo/pods/crasher" || u.pathname === "/api/v1/namespaces/demo/pods") {
+      const pod = {
+        metadata: { name: "crasher", namespace: "demo", creationTimestamp: "2026-10-18T08:00:00Z", uid: "8d6f1c1e-4b7a-4d3a-9f1e-0123456789ab",
+          managedFields: [{ manager: "noise" }], annotations: { "kubectl.kubernetes.io/last-applied-configuration": "{\"env\":[{\"name\":\"DB_PASSWORD\",\"value\":\"hunter2\"}]}" } },
+        spec: { nodeName: "node1", containers: [{ name: "crasher", env: [{ name: "DB_PASSWORD", value: "hunter2" }, { name: "LOG_LEVEL", value: "debug" }] }, { name: "istio-proxy" }] },
+        status: { phase: "Running", containerStatuses: [
+          { name: "crasher", ready: false, restartCount: 150, state: { waiting: { reason: "CrashLoopBackOff" } }, lastState: { terminated: { reason: "Error", exitCode: 1 } } },
+          { name: "istio-proxy", ready: true, restartCount: 0, state: { running: {} } } ] } };
+      return send(200, "application/json", JSON.stringify(u.pathname.endsWith("/pods") ? { kind: "PodList", apiVersion: "v1", metadata: {}, items: [pod] } : { kind: "Pod", apiVersion: "v1", ...pod }));
+    }
+    if (u.pathname === "/api/v1/namespaces/demo/events") {
+      const ev = (reason, message, ts, count) => ({ type: "Warning", reason, message, count, lastTimestamp: ts, metadata: { name: reason } });
+      return send(200, "application/json", JSON.stringify({ kind: "EventList", apiVersion: "v1", metadata: {}, items: [ev("Old", "older event", "2026-10-18T08:00:00Z", 1), ev("BackOff", "Back-off restarting failed container", "2026-10-24T08:00:00Z", 232)] }));
+    }
     if (u.pathname === "/api/v1/nodes") return send(403, "application/json", status(403, "Forbidden", 'nodes is forbidden: User "mcp-readonly" cannot list resource "nodes" at the cluster scope'));
     send(404, "application/json", status(404, "NotFound", "not found"));
   });
@@ -83,6 +97,34 @@ test("a cluster-wide read that RBAC denies explains the namespace-only credentia
   assert.equal(r.result.isError, true);
   assert.match(text(r), /^403 Forbidden/);
   assert.match(text(r), /--cluster/);
+});
+
+test("list_pods reports the real status, not just the phase", async () => {
+  const r = await call("list_pods", { namespace: "demo" });
+  assert.ok(!r.result.isError);
+  assert.match(text(r), /"status": "CrashLoopBackOff"/);
+  assert.match(text(r), /"ready": "1\/2"/);
+  assert.match(text(r), /"restarts": 150/);
+});
+
+test("get_pod never returns secret-looking env values or the last-applied copy", async () => {
+  const r = await call("get_pod", { namespace: "demo", name: "crasher" });
+  assert.ok(!r.result.isError);
+  assert.ok(!text(r).includes("hunter2"), "inline secret leaked");
+  assert.ok(!text(r).includes("managedFields"));
+  assert.match(text(r), /"LOG_LEVEL"/);
+  assert.match(text(r), /8d6f1c1e-4b7a-4d3a-9f1e-0123456789ab/, "UIDs must not be masked");
+});
+
+test("diagnose_pod shows the crash status, last run, newest event first, and redacted logs", async () => {
+  const r = await call("diagnose_pod", { namespace: "demo", name: "crasher" });
+  assert.ok(!r.result.isError);
+  const t = text(r);
+  assert.match(t, /Status: CrashLoopBackOff/);
+  assert.match(t, /crasher: Waiting: CrashLoopBackOff; last run: Error \(exit 1\)/);
+  assert.ok(t.indexOf("Warning/BackOff") < t.indexOf("Warning/Old"), "newest event must come first");
+  assert.match(t, /previous run/);
+  assert.ok(!t.includes("hunter2"));
 });
 
 test("a namespace outside the allowlist is refused before any API call", async () => {
