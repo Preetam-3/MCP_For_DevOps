@@ -45,7 +45,7 @@ jobs:
       - run: npm ci --prefix k8s-mcp
       - uses: helm/kind-action@v1
       - name: Create the read-only identity
-        run: ./scripts/setup.sh demo 1h
+        run: ./scripts/setup.sh demo 1h --yes
       - name: Prove writes are denied (cluster wall)
         run: KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo node k8s-mcp/scripts/verify-readonly.js
       - name: Build Docker image

@@ -4,6 +4,8 @@ Run these in Claude Code (and one more agent) with the skill installed and the M
 
 **Run the agent from an empty folder, not from this repository.** Inside the repo it can read the docs and tests and mistake them for cluster evidence.
 
+**Check the context first** (`kubectl config current-context`), and re-run `./scripts/setup.sh` whenever you switch clusters. The credential only works for the cluster it was created for.
+
 ## Setup for realistic tests
 ```bash
 kubectl create namespace demo

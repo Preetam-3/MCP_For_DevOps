@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.0.2 (2026-10-24)
+- Setup: `setup.sh` and `setup.ps1` now show the cluster context and API server they will change and ask for confirmation (`--yes` to skip, `--context NAME` to choose a cluster). A credential can no longer be created for the wrong cluster by accident. The setup script is now covered by tests (fake kubectl).
 - Errors: connection failures now include the underlying cause (for example ECONNREFUSED) instead of only "fetch failed".
 - Skill: use only the k8s-readonly tools, never read credential files, and stop and report when the cluster is unreachable.
 - Docs: stated the scope of the read-only guarantee (an agent with a shell can use other credentials).

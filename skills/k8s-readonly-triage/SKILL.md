@@ -36,7 +36,7 @@ If they are missing, stop and tell the user the MCP server is not connected. Giv
 
 ```bash
 git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
-./scripts/setup.sh <namespace> 8h      # creates the read-only identity and ./mcp.kubeconfig
+./scripts/setup.sh <namespace> 8h      # shows the cluster it will use and asks to confirm; add --context NAME to pick another
 claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 

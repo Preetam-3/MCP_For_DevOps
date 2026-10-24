@@ -5,7 +5,8 @@
 **30-second install:**
 ```bash
 git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
-./scripts/setup.sh demo 2h        # creates the read-only identity and ./mcp.kubeconfig
+./scripts/setup.sh demo 2h        # shows which cluster it will use, asks to confirm, then creates the read-only identity and ./mcp.kubeconfig
+# several clusters? add --context my-cluster. No terminal (CI)? add --yes
 claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 

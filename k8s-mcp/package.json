@@ -43,7 +43,7 @@
   ],
   "scripts": {
     "start": "node server.js",
-    "test": "node test/safety.js && node --test test/lib.test.js test/server.test.js test/api-errors.test.js",
+    "test": "node test/safety.js && node --test test/lib.test.js test/server.test.js test/api-errors.test.js test/setup.test.js",
     "verify-readonly": "node scripts/verify-readonly.js",
     "doctor": "node scripts/doctor.js"
   },
