@@ -18,7 +18,7 @@ Teaches your AI agent a proven workflow for diagnosing broken pods, rollouts and
    ```bash
    git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
    ./scripts/setup.sh <namespace> 8h
-   claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+   claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
    ```
 2. Copy this `k8s-readonly-triage` folder into your agent's skills directory (for Claude Code: `~/.claude/skills/` or `.claude/skills/` in your project).
 3. Ask your agent: "Why is my pod crashing in the demo namespace?"

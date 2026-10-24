@@ -56,4 +56,4 @@ jobs:
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
             '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
-          | timeout 60 docker run -i --rm k8s-readonly-mcp | grep -q '"name":"list_pods"'
+          | timeout 60 docker run -i --rm -e KUBECONFIG=/tmp/none k8s-readonly-mcp | grep -q '"name":"list_pods"'

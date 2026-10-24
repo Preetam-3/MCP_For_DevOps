@@ -92,10 +92,10 @@ echo "Kubeconfig written: $(pwd)/mcp.kubeconfig"
 echo "--- 6. Ready-to-paste agent configs ---"
 cat <<AGENTS
 # Claude Code
-claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 
-# Cursor (.cursor/mcp.json), Gemini CLI (~/.gemini/settings.json), VS Code (.vscode/mcp.json), Codex CLI (config.toml):
-# copy the snippet for your agent from docs/clients/ and set KUBECONFIG to:
+# Cursor, VS Code, Kilo, Gemini CLI or Codex CLI: copy the snippet for your agent from docs/clients/
+# and set KUBECONFIG to:
 #   $(pwd)/mcp.kubeconfig
 AGENTS
 

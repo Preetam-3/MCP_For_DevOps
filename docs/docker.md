@@ -18,7 +18,7 @@ docker run -i --rm \
 Agent config (for example Claude Code):
 
 ```bash
-claude mcp add k8s-readonly -- docker run -i --rm \
+claude mcp add --scope user k8s-readonly -- docker run -i --rm \
   -v "$(pwd)/mcp.kubeconfig:/kube/config:ro" -e KUBECONFIG=/kube/config k8s-readonly-mcp
 ```
 

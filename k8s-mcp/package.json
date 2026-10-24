@@ -1,6 +1,6 @@
 {
   "name": "k8s-readonly-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Read-only Kubernetes MCP server for AI agents (Claude Code, Cursor, Gemini CLI, Codex CLI, VS Code Copilot). It has no write tools, and Kubernetes RBAC enforces read-only access as a second wall.",
   "keywords": [
     "mcp",
@@ -43,7 +43,7 @@
   ],
   "scripts": {
     "start": "node server.js",
-    "test": "node test/safety.js && node --test test/lib.test.js test/server.test.js",
+    "test": "node test/safety.js && node --test test/lib.test.js test/server.test.js test/api-errors.test.js",
     "verify-readonly": "node scripts/verify-readonly.js",
     "doctor": "node scripts/doctor.js"
   },

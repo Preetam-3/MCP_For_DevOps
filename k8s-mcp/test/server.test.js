@@ -2,7 +2,7 @@
 // Run: node --test test/server.test.js
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline";
 
@@ -68,4 +68,14 @@ test("server offers the 4 diagnostic prompts", async () => {
   const { result } = await request("prompts/list");
   const names = result.prompts.map((p) => p.name).sort();
   assert.deepEqual(names, ["cluster-health-summary", "diagnose-crashloop", "rollout-stuck", "why-is-my-pod-pending"]);
+});
+
+test("server refuses to start without KUBECONFIG, so it never silently uses an admin credential", () => {
+  const env = { ...process.env };
+  delete env.KUBECONFIG;
+  delete env.KUBERNETES_SERVICE_HOST;
+  delete env.K8S_READONLY_ALLOW_DEFAULT_KUBECONFIG;
+  const r = spawnSync(process.execPath, [serverPath], { env, input: "", encoding: "utf8", timeout: 15000 });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /will not start without KUBECONFIG/);
 });

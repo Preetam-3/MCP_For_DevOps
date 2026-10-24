@@ -20,7 +20,7 @@ Two independent walls enforce this:
 2. Register the server with your agent:
 
    ```bash
-   claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+   claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
    ```
 
    Config snippets for Cursor, VS Code, Gemini CLI and Codex CLI are in the repository under `docs/clients/`.
@@ -36,7 +36,8 @@ KUBECONFIG=./mcp.kubeconfig npx -y -p k8s-readonly-mcp k8s-readonly-doctor      
 
 | Variable | Meaning |
 |---|---|
-| `KUBECONFIG` | Path to the scoped kubeconfig (default: your usual kubectl config) |
+| `KUBECONFIG` | **Required.** Path to the scoped read-only kubeconfig. The server refuses to start without it, so it never silently uses your admin credential. |
+| `K8S_READONLY_ALLOW_DEFAULT_KUBECONFIG` | Set to `1` to deliberately allow your default kubeconfig (not recommended) |
 | `NAMESPACE_ALLOWLIST` | Comma-separated namespaces the server may read (default: the namespace of the current context) |
 
 ## Requirements

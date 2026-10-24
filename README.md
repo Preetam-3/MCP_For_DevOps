@@ -6,7 +6,7 @@
 ```bash
 git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
 ./scripts/setup.sh demo 2h        # creates the read-only identity and ./mcp.kubeconfig
-claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 
 **Two walls:**
@@ -17,7 +17,7 @@ claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-
 
 **Demo video:** `docs/demo.mp4` (`Agentic Cluster.mp4` renamed, no spaces).
 
-**Safety proof:** Run `KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo npx -y -p k8s-readonly-mcp k8s-readonly-verify` (fails unless every write is denied, including a real delete that must return 403) and `node k8s-mcp/test/safety.js` (fails the build if any mutating API is registered). `k8s-readonly-doctor` checks your environment.
+**Safety proof:** Run `KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo npx -y -p k8s-readonly-mcp k8s-readonly-verify` (fails unless every write is denied, including a real delete that must return 403) and `node k8s-mcp/test/safety.js` (fails the build if any mutating API is registered). `k8s-readonly-doctor` checks your environment. The server also refuses to start unless `KUBECONFIG` points at the scoped credential, so it can never silently fall back to your admin kubeconfig.
 
 **Package:** `k8s-readonly-mcp` on npm (run with `npx -y k8s-readonly-mcp`). The repository also contains a `Dockerfile` (see `docs/docker.md`) and the `skills/k8s-readonly-triage/` skill folder.
 
@@ -133,7 +133,7 @@ This creates the `mcp-readonly` identity, applies RBAC, builds `mcp.kubeconfig` 
 
 ### 5. Install and register the MCP server
 ```bash
-claude mcp add k8s-readonly -e KUBECONFIG="$PWD/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+claude mcp add --scope user k8s-readonly -e KUBECONFIG="$PWD/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 Running from source instead: `cd k8s-mcp && npm install`, then use `-- node "$PWD/k8s-mcp/server.js"` in place of the `npx` part.
 

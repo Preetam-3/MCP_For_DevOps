@@ -1,17 +1,20 @@
 # Setup and connection troubleshooting
 
-Contents: Install, Node version, Tools not showing up, 401/token expired, 403 Forbidden, namespace not allowed, metrics unavailable
+Contents: Install, Node version, KUBECONFIG required, Tools not showing up, 401/token expired, 403 Forbidden, namespace not allowed, metrics unavailable
 
 ## Install
 ```bash
 git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
 ./scripts/setup.sh <namespace> 8h
-claude mcp add k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
+claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 Add `--cluster` to the setup command only if the user wants node and cross-namespace reads.
 
 ## Node version
 The server needs Node.js 22.19 or newer. On an older Node it prints a clear message and exits. Fix: install a current Node.js LTS.
+
+## Server exits immediately: "will not start without KUBECONFIG"
+The server refuses to run unless `KUBECONFIG` points at the scoped read-only credential, so it can never silently use an admin kubeconfig. Set `KUBECONFIG` in the agent's MCP server configuration (the `-e KUBECONFIG=...` part of the install command).
 
 ## Tools not showing up
 The MCP server is not registered or failed to start. Re-run the install from the repo README, then restart the agent session. Run the repo's `doctor` command to check Node version, kubeconfig and API reachability.

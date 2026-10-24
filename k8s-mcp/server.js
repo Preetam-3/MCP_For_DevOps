@@ -3,24 +3,17 @@
 // It exposes get/list/diagnose/read-only tools ONLY.
 // There is deliberately no mutating tool (create/delete/patch/replace/exec/scale/apply/evict/restart/update).
 import "./lib/require-node.js"; // must stay first: clear error on unsupported Node
+import "./lib/require-credential.js"; // refuse to run without the scoped read-only credential
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 const log = (...args) => console.error("[k8s-mcp]", ...args);
 
-const server = new McpServer({ name: "k8s-readonly", version: "1.0.0" });
+import { createRequire } from "node:module";
+import { formatError } from "./lib/errors.js";
+const { version } = createRequire(import.meta.url)("./package.json");
 
-function formatError(err) {
-  // Never expose raw stack traces to the agent
-  const msg = err?.message || String(err);
-  if (msg.includes("403") || msg.includes("Forbidden")) {
-    return "403 Forbidden: this credential is read-only by design. Kubernetes RBAC denied the request.";
-  }
-  if (msg.includes("not allowed") || msg.includes("NAMESPACE_ALLOWLIST")) {
-    return msg;
-  }
-  return `Read-only error: ${msg}`;
-}
+const server = new McpServer({ name: "k8s-readonly", version });
 
 // Import and register all read-only tools
 import { config as listPodsCfg, handler as listPodsHandler } from "./tools/list_pods.js";
@@ -56,7 +49,7 @@ function reg(name, cfg, handler) {
       return await handler(args);
     } catch (err) {
       log("error in", name, ":", err.message || err);
-      return { content: [{ type: "text", text: formatError(err) }] };
+      return { isError: true, content: [{ type: "text", text: formatError(err) }] };
     }
   });
 }
