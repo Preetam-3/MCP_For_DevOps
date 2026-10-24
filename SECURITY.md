@@ -6,6 +6,9 @@ This MCP server exposes only read-only Kubernetes tools. No delete, patch, scale
 ## Cluster wall
 `rbac.yaml` grants only `get`, `list` and `watch` in one namespace, and no access to Secrets or `pods/exec`. The optional `rbac-cluster.yaml` (applied only with `--cluster`) widens reads to nodes, namespaces and other namespaces, still read-only. Any write attempt returns `403 Forbidden` from Kubernetes itself. Run `k8s-readonly-verify` to prove it for your own credential.
 
+## Scope of the guarantee
+The read-only guarantee covers this MCP server and the credential it uses. It cannot restrict other tools an agent has. An agent with a shell can run `kubectl` with any credential on your machine, including an admin kubeconfig. For important clusters, run the agent where only the scoped kubeconfig is available, or disable its shell tool.
+
 ## Credential hygiene
 - The server refuses to start unless `KUBECONFIG` is set, so it cannot silently run with your admin credential.
 - `mcp.kubeconfig` is git-ignored (`*.kubeconfig`). Never commit it.

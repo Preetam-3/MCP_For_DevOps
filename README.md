@@ -19,6 +19,8 @@ claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -
 
 **Safety proof:** Run `KUBECONFIG=./mcp.kubeconfig NAMESPACE=demo npx -y -p k8s-readonly-mcp k8s-readonly-verify` (fails unless every write is denied, including a real delete that must return 403) and `node k8s-mcp/test/safety.js` (fails the build if any mutating API is registered). `k8s-readonly-doctor` checks your environment. The server also refuses to start unless `KUBECONFIG` points at the scoped credential, so it can never silently fall back to your admin kubeconfig.
 
+**Scope of the guarantee:** it covers this MCP server and its credential. An AI agent that also has a shell tool can still run `kubectl` with any other credentials on your machine (for example your admin kubeconfig). For important clusters, run the agent in an environment where only the scoped kubeconfig exists, or turn off its shell tool.
+
 **Package:** `k8s-readonly-mcp` on npm (run with `npx -y k8s-readonly-mcp`). The repository also contains a `Dockerfile` (see `docs/docker.md`) and the `skills/k8s-readonly-triage/` skill folder.
 
 **License:** MIT (`LICENSE` included).

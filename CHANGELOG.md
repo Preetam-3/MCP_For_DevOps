@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 (2026-10-24)
+- Errors: connection failures now include the underlying cause (for example ECONNREFUSED) instead of only "fetch failed".
+- Skill: use only the k8s-readonly tools, never read credential files, and stop and report when the cluster is unreachable.
+- Docs: stated the scope of the read-only guarantee (an agent with a shell can use other credentials).
+
 ## 1.0.1 (2026-10-23)
 - Safety: the server refuses to start unless `KUBECONFIG` is set (escape hatch: `K8S_READONLY_ALLOW_DEFAULT_KUBECONFIG=1`), so it can never silently use an admin credential.
 - Errors: failed calls now return a short readable message and are flagged `isError`. A missing previous-container log, an RBAC denial on a cluster-wide read, an expired token and an unreachable cluster each get a clear explanation. Raw HTTP headers no longer reach the agent.

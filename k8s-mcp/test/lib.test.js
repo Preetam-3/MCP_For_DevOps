@@ -84,6 +84,8 @@ test("formatError: a missing previous container becomes a short readable hint", 
 test("formatError: 401, connection failures, allowlist errors and unknown errors", () => {
   assert.match(formatError({ code: 401, message: "HTTP-Code: 401" }), /expired/);
   assert.match(formatError(Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:6443"), { code: "ECONNREFUSED" })), /Cannot reach the cluster API/);
+  const refused = Object.assign(new Error("fetch failed"), { cause: Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:6443"), { code: "ECONNREFUSED" }) });
+  assert.match(formatError(refused), /fetch failed: ECONNREFUSED/);
   const ns = 'Namespace "kube-system" is not in NAMESPACE_ALLOWLIST (demo). Access denied.';
   assert.equal(formatError(new Error(ns)), ns);
   assert.match(formatError(new Error("something odd")), /^Kubernetes error: something odd/);

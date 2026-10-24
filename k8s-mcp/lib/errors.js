@@ -37,7 +37,9 @@ export function formatError(err) {
     text = `Kubernetes rejected the request (400 ${status?.reason || "BadRequest"}): ${detail || "bad request"}.`;
     if (/previous terminated container/i.test(detail)) text += " There is no earlier run to read; use the current logs and the pod events instead.";
   } else if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EHOSTUNREACH|certificate|x509|self.signed/i.test(`${msg} ${err?.code ?? ""} ${err?.cause?.code ?? ""}`)) {
-    text = `Cannot reach the cluster API (${msg.split("\n")[0]}). Check that the cluster is running and that KUBECONFIG points at a valid credential (the user can run k8s-readonly-doctor).`;
+    const cause = err?.cause?.code || err?.cause?.errors?.[0]?.code || String(err?.cause?.message ?? "").split("\n")[0];
+    const why = [msg.split("\n")[0], cause].filter(Boolean).join(": ");
+    text = `Cannot reach the cluster API (${why}). Check that the cluster is running and that KUBECONFIG points at a valid credential for it (the user can run k8s-readonly-doctor). If the cluster was recreated or the token expired, re-run ./scripts/setup.sh.`;
   } else {
     text = `Kubernetes error${code ? ` (HTTP ${code})` : ""}: ${detail || msg.split("\n")[0]}`;
   }

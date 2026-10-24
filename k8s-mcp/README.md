@@ -25,6 +25,8 @@ Two independent walls enforce this:
 
    Config snippets for Cursor, VS Code, Gemini CLI and Codex CLI are in the repository under `docs/clients/`.
 
+**Scope of the guarantee:** it covers this server and its credential. An agent that also has a shell can still use other credentials on your machine, so for important clusters run it where only the scoped kubeconfig exists.
+
 ## Check it
 
 ```bash

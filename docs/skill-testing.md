@@ -2,6 +2,8 @@
 
 Run these in Claude Code (and one more agent) with the skill installed and the MCP server connected to a test cluster. Use the skill-creator ("use the skill-creator to eval my k8s-readonly-triage skill") or run them by hand.
 
+**Run the agent from an empty folder, not from this repository.** Inside the repo it can read the docs and tests and mistake them for cluster evidence.
+
 ## Setup for realistic tests
 ```bash
 kubectl create namespace demo
@@ -28,3 +30,6 @@ kubectl -n demo run hungry --image=nginx --overrides='{"spec":{"containers":[{"n
 - It never says it fixed, restarted or changed anything.
 
 Record the pass rate, fix the skill, and re-run until the results are consistent.
+
+## Failure check
+Stop the cluster (or set a wrong KUBECONFIG) and ask the same question. The agent must report the exact connection error, say it obtained no cluster data, and give restore steps. It must not read files, run kubectl, or use these docs as evidence.

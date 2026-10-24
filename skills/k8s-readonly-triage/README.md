@@ -24,6 +24,8 @@ Teaches your AI agent a proven workflow for diagnosing broken pods, rollouts and
 3. Ask your agent: "Why is my pod crashing in the demo namespace?"
 
 ## Safety
+The guarantee covers the MCP server and its credential. An agent that also has a shell can still use other credentials on your machine, so for important clusters keep only the scoped kubeconfig available. The skill tells the agent to use only the read-only tools and never to read credential files.
+
 The default credential is limited to one namespace and cannot read Secrets. Prove it any time with `KUBECONFIG=./mcp.kubeconfig NAMESPACE=<namespace> npx -y -p k8s-readonly-mcp k8s-readonly-verify`.
 
 ## Files
