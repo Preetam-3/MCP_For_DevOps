@@ -30,7 +30,7 @@ export function formatError(err) {
       "This credential is read-only and, by default, limited to one namespace, so writes and cluster-wide reads " +
       "(nodes, namespaces, other namespaces) are refused. For cluster-wide reads the user can re-run the setup with --cluster.";
   } else if (code === 401) {
-    text = "401 Unauthorized: the credential was rejected or has expired. The user should re-run ./scripts/setup.sh <namespace> 8h to issue a new token.";
+    text = "401 Unauthorized: the read-only credential was rejected or has expired (its token lasts only as long as the duration chosen at setup). The user must re-run scripts/setup.sh from their copy of the MCP_For_DevOps repository, for example ./scripts/setup.sh <namespace> 24h, and then retry. No other credential is needed.";
   } else if (code === 404) {
     text = `404 Not Found: ${detail || "the resource does not exist"}.`;
   } else if (code === 400) {

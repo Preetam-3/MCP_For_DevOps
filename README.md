@@ -7,6 +7,7 @@
 git clone https://github.com/Preetam-3/MCP_For_DevOps.git && cd MCP_For_DevOps
 ./scripts/setup.sh demo 2h        # shows which cluster it will use, asks to confirm, then creates the read-only identity and ./mcp.kubeconfig
 # several clusters? add --context my-cluster. No terminal (CI)? add --yes
+# the credential expires after the duration you choose (here 2h); use 24h for daily use. When it expires the tools report 401: just run setup again.
 claude mcp add --scope user k8s-readonly -e KUBECONFIG="$(pwd)/mcp.kubeconfig" -- npx -y k8s-readonly-mcp
 ```
 

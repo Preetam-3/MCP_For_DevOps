@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.0.2 (2026-10-24)
+- Expired credential: the 401 message now says where the setup script lives and how to renew; the skill no longer asks questions the request already answers.
 - Security: secret masking now applies to **every** tool, not only logs. Previously `get_pod` and `get_deployment` could return inline environment variable values (for example `DB_PASSWORD`) and the last-applied manifest to the agent. They are now masked, and `managedFields` noise is dropped. `diagnose_pod` also redacts its log lines.
 - Accuracy: `list_pods` now returns `status` (CrashLoopBackOff, ImagePullBackOff, ...) and a ready count, not just the phase. `diagnose_pod` shows per-container state and last termination, newest events first, previous-run logs, and picks the right container in sidecar pods. It no longer reports a cluster or permission error as "pod not found".
 - Setup: `setup.sh` and `setup.ps1` now show the cluster context and API server they will change and ask for confirmation (`--yes` to skip, `--context NAME` to choose a cluster). A credential can no longer be created for the wrong cluster by accident. The setup script is now covered by tests (fake kubectl).
